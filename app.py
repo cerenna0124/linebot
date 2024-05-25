@@ -33,8 +33,8 @@ def sql_selectall():
     cursor.execute(query)
     data=cursor.fetchall()
     conn.commit()
-    data=[list(i) for i in res]
-    data=[[' | '.join(x)] for x in res]
+    data=[list(i) for i in data]
+    data=[[' | '.join(x)] for x in data]
     return data
 
 def sql_insert(msg):
