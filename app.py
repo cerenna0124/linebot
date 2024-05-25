@@ -28,6 +28,8 @@ static_tmp_path = os.path.join(os.path.dirname(__file__), 'static', 'tmp')
 line_bot_api = LineBotApi(os.getenv('CHANNEL_ACCESS_TOKEN'))
 # Channel Secret
 handler = WebhookHandler(os.getenv('CHANNEL_SECRET'))
+# Postgre SQL URL
+db_url=os.getenv('DB_URL')
 
 # Postgre SQL
 # PSQL COMMAND
@@ -79,7 +81,8 @@ def callback():
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
     msg = event.message.text
-    message = TextSendMessage(text=msg)
+    sql_insert(msg)
+    message = TextSendMessage(text=f'{msg} already save in psql')
     line_bot_api.reply_message(event.reply_token, message)
 
 @handler.add(PostbackEvent)
