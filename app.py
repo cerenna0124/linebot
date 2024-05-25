@@ -10,15 +10,16 @@ from linebot.models import *
 
 
 #======這裡是呼叫的檔案內容=====
-from message import *
-from new import *
-from Function import *
+# from message import *
+# from new import *
+# from Function import *
 #======這裡是呼叫的檔案內容=====
 
 #======python的函數庫==========
 import tempfile, os
 import datetime
 import time
+import psycopg2
 #======python的函數庫==========
 
 app = Flask(__name__)
@@ -28,7 +29,36 @@ line_bot_api = LineBotApi(os.getenv('CHANNEL_ACCESS_TOKEN'))
 # Channel Secret
 handler = WebhookHandler(os.getenv('CHANNEL_SECRET'))
 
+# Postgre SQL
+# PSQL COMMAND
+def sql_selectall():
+    query='select * from line_bot'
+    conn=psycopg2.connect(db_url)
+    cursor=conn.cursor()
+    cursor.execute(query)
+    data=cursor.fetchall()
+    conn.commit()
+    data=[list(i) for i in res]
+    data=[[' | '.join(x)] for x in res]
+    return data
 
+def sql_insert(msg):
+    t=datetime.datetime.now().strftime('%Y%m%d %H:%M:%S')
+    query=f"insert into line_bot (message,receive_datetime) values('{msg}','{t}')"
+    conn=psycopg2.connect(db_url)
+    cursor=conn.cursor()
+    cursor.execute(query)
+    conn.commit()
+    
+def sql_del_all():
+    query="delete from line_bot"
+    data_length=len(sql_selectall())
+    conn=psycopg2.connect(db_url)
+    cursor=conn.cursor()
+    cursor.execute(query)
+    conn.commit()
+    return data_length
+    
 # 監聽所有來自 /callback 的 Post Request
 @app.route("/callback", methods=['POST'])
 def callback():
