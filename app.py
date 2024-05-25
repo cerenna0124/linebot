@@ -8,13 +8,6 @@ from linebot.exceptions import (
 )
 from linebot.models import *
 
-
-#======這裡是呼叫的檔案內容=====
-# from message import *
-# from new import *
-# from Function import *
-#======這裡是呼叫的檔案內容=====
-
 #======python的函數庫==========
 import tempfile, os
 import datetime
@@ -82,7 +75,23 @@ def callback():
 def handle_message(event):
     msg = event.message.text
     sql_insert(msg)
-    message = TextSendMessage(text=f'{msg} already save in psql')
+    if msg=='@對話紀錄':
+        datas=sql_selectall()
+        text_list=[]
+        for each in datas:
+          if '@' not in each:
+            text_list.append(each)
+        data_text = '\n'.join(text_list)
+        message = TextSendMessage(text=data_text)
+
+    elif msg=='@刪除':
+        data=len(sql_selectall())
+        sql_del_all()
+        message = TextSendMessage(text=f'{data} records was deleted')
+
+    else:
+        message = TextSendMessage(text=f'{msg} already save in psql')
+        
     line_bot_api.reply_message(event.reply_token, message)
 
 @handler.add(PostbackEvent)
