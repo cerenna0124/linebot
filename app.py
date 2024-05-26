@@ -103,8 +103,10 @@ def handle_message(event):
         datas=get_pages()
         text_list=[]
         for each in datas:
-          if '@' not in each:
-            text_list.append(each['properties']['Message']['title'][0]['plain_text']+'  |  '+each['properties']['Date']['rich_text'][0]['plain_text'])
+            msg=each['properties']['Message']['title'][0]['plain_text']
+            dt=each['properties']['Date']['rich_text'][0]['plain_text']
+          if '@' not in msg:
+            text_list.append(msg+'  |  '+dt)
         data_text = '\n'.join(text_list)
         message = TextSendMessage(text=data_text)
 
@@ -117,7 +119,7 @@ def handle_message(event):
         message = TextSendMessage(text='@對話紀錄: 顯示所有對話紀錄\n@刪除: 刪除所有對話紀錄')
 
     else:
-        message = TextSendMessage(text=f'{msg} already save in psql')
+        message = TextSendMessage(text=f'{msg} already save in Notion')
         
     line_bot_api.reply_message(event.reply_token, message)
 
