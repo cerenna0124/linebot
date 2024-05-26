@@ -1,4 +1,4 @@
 line-bot-sdk
 flask
 gunicorn
-psycopg2
+requests
