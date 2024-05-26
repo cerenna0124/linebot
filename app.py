@@ -12,7 +12,7 @@ from linebot.models import *
 import tempfile, os
 import datetime
 import time
-import psycopg2
+import requests
 #======python的函數庫==========
 
 app = Flask(__name__)
@@ -21,38 +21,62 @@ static_tmp_path = os.path.join(os.path.dirname(__file__), 'static', 'tmp')
 line_bot_api = LineBotApi(os.getenv('CHANNEL_ACCESS_TOKEN'))
 # Channel Secret
 handler = WebhookHandler(os.getenv('CHANNEL_SECRET'))
-# Postgre SQL URL
-db_url=os.getenv('DB_URL')
+# Notion tokenn
+notion_token=os.getenv('NOTION_TOKEN')
+# Notion Database id
+database_id=os.getenv('NOTION_DATABASE_ID')
 
-# Postgre SQL
-# PSQL COMMAND
-def sql_selectall():
-    query='select * from line_bot'
-    conn=psycopg2.connect(db_url)
-    cursor=conn.cursor()
-    cursor.execute(query)
-    data=cursor.fetchall()
-    conn.commit()
-    data=[list(i) for i in data]
-    data=[' | '.join(x) for x in data]
-    return data
+#Notion Command
+headers = {
+    "Authorization": "Bearer " + notion_token,
+    "Content-Type": "application/json",
+    "Notion-Version": "2022-06-28",
+}
 
-def sql_insert(msg):
-    t=datetime.datetime.now().strftime('%Y%m%d %H:%M:%S')
-    query=f"insert into line_bot (message,receive_datetime) values('{msg}','{t}')"
-    conn=psycopg2.connect(db_url)
-    cursor=conn.cursor()
-    cursor.execute(query)
-    conn.commit()
+def get_pages(num_pages=None):
+    """
+    If num_pages is None, get all pages, otherwise just the defined number.
+    """
+    url = f"https://api.notion.com/v1/databases/{database_id}/query"
+
+    get_all = num_pages is None
+    page_size = 100 if get_all else num_pages
+
+    payload = {"page_size": page_size}
+    response = requests.post(url, json=payload, headers=headers)
+
+    data = response.json()
+
+    results = data["results"]
+    while data["has_more"] and get_all:
+        payload = {"page_size": page_size, "start_cursor": data["next_cursor"]}
+        url = f"https://api.notion.com/v1/databases/{database_id}/query"
+        response = requests.post(url, json=payload, headers=headers)
+        data = response.json()
+        results.extend(data["results"])
+
+    return results
+
+def insert_data(msg:str):
+    url = "https://api.notion.com/v1/pages"
+    dt=datetime.datetime.now().strftime('%Y%m%d %H:%M:%S')
+    data = {
+    'Message': {'title': [{'text': {'content': msg}}]},
+    'Date': {'rich_text': [{'text': {'content': dt}}]}}
+    payload = {"parent": {"database_id": database_id}, "properties": data}
+    res = requests.post(url, headers=headers, json=payload)
+    return res
     
-def sql_del_all():
-    query="delete from line_bot"
-    data_length=len(sql_selectall())
-    conn=psycopg2.connect(db_url)
-    cursor=conn.cursor()
-    cursor.execute(query)
-    conn.commit()
-    return data_length
+def delete_data():
+    payload = {"archived": True}
+    all_pages=get_pages()
+    deleted_row=0
+    for each_id in all_pages:
+        url = f"https://api.notion.com/v1/pages/{each_id['id']}"
+        res = requests.patch(url, json=payload, headers=headers)
+        if res.status_code==200:
+            deleted_row+=1
+    return f'{deleted_row} records was deleted'
     
 # 監聽所有來自 /callback 的 Post Request
 @app.route("/callback", methods=['POST'])
@@ -74,20 +98,23 @@ def callback():
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
     msg = event.message.text
-    sql_insert(msg)
+    insert_data(msg)
     if msg=='@對話紀錄':
-        datas=sql_selectall()
+        datas=get_pages()
         text_list=[]
         for each in datas:
           if '@' not in each:
-            text_list.append(each)
+            text_list.append(each['properties']['Message']['title'][0]['plain_text']+'  |  '+each['properties']['Date']['rich_text'][0]['plain_text'])
         data_text = '\n'.join(text_list)
         message = TextSendMessage(text=data_text)
 
     elif msg=='@刪除':
-        data=len(sql_selectall())
-        sql_del_all()
+        data=len(get_pages())
+        delete_data()
         message = TextSendMessage(text=f'{data} records was deleted')
+
+    elif msg=='@功能':
+        message = TextSendMessage(text='@對話紀錄: 顯示所有對話紀錄\n@刪除: 刪除所有對話紀錄')
 
     else:
         message = TextSendMessage(text=f'{msg} already save in psql')
