@@ -59,7 +59,9 @@ def get_pages(num_pages=None):
 
 def insert_data(msg:str):
     url = "https://api.notion.com/v1/pages"
-    dt=datetime.datetime.now().strftime('%Y%m%d %H:%M:%S')
+    # 轉時區 UTC+8
+    t=datetime.timezone(datetime.timedelta(hours=8))
+    dt=datetime.datetime.now(t).strftime('%Y%m%d %H:%M:%S')
     data = {
     'Message': {'title': [{'text': {'content': msg}}]},
     'Date': {'rich_text': [{'text': {'content': dt}}]}}
