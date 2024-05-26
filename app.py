@@ -106,7 +106,7 @@ def handle_message(event):
             msg=each['properties']['Message']['title'][0]['plain_text']
             dt=each['properties']['Date']['rich_text'][0]['plain_text']
           if '@' not in msg:
-            text_list.append(msg+'  |  '+dt)
+              text_list.append(msg+'  |  '+dt)
         data_text = '\n'.join(text_list)
         message = TextSendMessage(text=data_text)
 
