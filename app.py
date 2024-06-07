@@ -59,12 +59,7 @@ def get_pages(num_pages=None):
 
 def insert_data(msg:str):
     url = "https://api.notion.com/v1/pages"
-    # 轉時區 UTC+8
-    t=datetime.timezone(datetime.timedelta(hours=8))
-    dt=datetime.datetime.now(t).strftime('%Y%m%d %H:%M:%S')
-    data = {
-    'Message': {'title': [{'text': {'content': msg}}]},
-    'Date': {'rich_text': [{'text': {'content': dt}}]}}
+    data = {'Message': {'title': [{'text': {'content': msg}}]}}
     payload = {"parent": {"database_id": database_id}, "properties": data}
     res = requests.post(url, headers=headers, json=payload)
     return res
@@ -100,15 +95,15 @@ def callback():
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
     msg = event.message.text
-    insert_data(msg)
+    
     if msg=='@對話紀錄':
         datas=get_pages()
         text_list=[]
         for each in datas:
             msg=each['properties']['Message']['title'][0]['plain_text']
-            dt=each['properties']['Date']['rich_text'][0]['plain_text']
-            if '@' not in msg:
-                text_list.append(msg+'  |  '+dt)
+            dt=each['properties']['Date']['created_time'].replace('T',' ')[:19]
+            text_list.append(f'Created Date: {dt}; Message: {msg}')
+
         data_text = '\n'.join(text_list)
         message = TextSendMessage(text=data_text)
 
@@ -121,6 +116,7 @@ def handle_message(event):
         message = TextSendMessage(text='@對話紀錄: 顯示所有對話紀錄\n@刪除: 刪除所有對話紀錄')
 
     else:
+        insert_data(msg)
         message = TextSendMessage(text=f'{msg} already save in Notion')
         
     line_bot_api.reply_message(event.reply_token, message)
