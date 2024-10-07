@@ -95,6 +95,8 @@ def callback():
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
     msg = event.message.text
+    usr = event.source.user_id
+    print('userid=',uer)
     
     if msg=='@對話紀錄':
         datas=get_pages()
@@ -117,7 +119,7 @@ def handle_message(event):
 
     else:
         insert_data(msg)
-        message = TextSendMessage(text=f'{msg} already save in Notion')
+        message = TextSendMessage(text=f'{msg} said by {usr} already save in Notion')
         
     line_bot_api.reply_message(event.reply_token, message)
 
