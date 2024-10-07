@@ -96,7 +96,7 @@ def callback():
 def handle_message(event):
     msg = event.message.text
     usr = event.source.user_id
-    print('userid=',uer)
+    print('userid=',usr)
     
     if msg=='@對話紀錄':
         datas=get_pages()
